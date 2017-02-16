@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
-Premain-Class: Agent
+Premain-Class: agent.Agent
 Can-Redefine-Classes: true
 Can-Retransform-Classes: true
 Can-Set-Native-Method-Prefix: true
-Implementation-Title: ClassLogger
+Implementation-Title: agent.ClassLogger
 Implementation-Version: 1
