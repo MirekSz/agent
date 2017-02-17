@@ -33,7 +33,7 @@ public class ClassLogger implements ClassFileTransformer {
 			LoaderClassPath loaderClassPath = new LoaderClassPath(Thread.currentThread().getContextClassLoader());
 			pool.appendClassPath(loaderClassPath);
 			cl = pool.makeClass(new java.io.ByteArrayInputStream(classfileBuffer));
-			pool.importPackage("agent.Informer");
+			pool.importPackage("agent.ProfileSession");
 			CtBehavior[] methods = cl.getDeclaredBehaviors();
 			for (int i = 0; i < methods.length; i++) {
 				if (methods[i].isEmpty() == false) {
@@ -60,7 +60,7 @@ public class ClassLogger implements ClassFileTransformer {
 		// __start;");
 		// method.addLocalVariable("__start", CtClass.longType);
 		// method.addLocalVariable("__stop", CtClass.longType);
-		method.insertBefore("Informer.start(\"" + method.getLongName() + "\");");
-		method.insertAfter("Informer.stop(\"" + method.getLongName() + "\");");
+		method.insertBefore("ProfileSession.opStart(\"" + method.getLongName() + "\");");
+		method.insertAfter("ProfileSession.opStop(\"" + method.getLongName() + "\");");
 	}
 }
