@@ -17,6 +17,9 @@ public class ClassLogger implements ClassFileTransformer {
 		if (!(className.startsWith("pl") || className.startsWith("hello"))) {
 			return classfileBuffer;
 		}
+		if (className.contains("asen") && className.contains("RemoteBusinessHandler")) {
+			return transform(classfileBuffer, "doPost");
+		}
 		if (className.contains("CGLIB") || className.contains("$") || className.contains("javassist")
 				|| className.contains("asen")) {
 			return classfileBuffer;
@@ -25,7 +28,11 @@ public class ClassLogger implements ClassFileTransformer {
 		if (!className.contains("server")) {
 			return classfileBuffer;
 		}
-		System.out.println("TRANSFORM " + className);
+		// System.out.println("TRANSFORM " + className);
+		return transform(classfileBuffer, null);
+	}
+
+	private byte[] transform(byte[] classfileBuffer, String onlyMethod) {
 		CtClass cl = null;
 		byte[] b = null;
 		try {
@@ -37,7 +44,13 @@ public class ClassLogger implements ClassFileTransformer {
 			CtBehavior[] methods = cl.getDeclaredBehaviors();
 			for (int i = 0; i < methods.length; i++) {
 				if (methods[i].isEmpty() == false) {
-					changeMethod(methods[i]);
+					if (onlyMethod != null) {
+						if (onlyMethod.equals(methods[i].getName())) {
+							changeMethod(methods[i]);
+						}
+					} else {
+						changeMethod(methods[i]);
+					}
 					// System.out.println("TRANSFORM " + methods[i]);
 				}
 			}
@@ -60,7 +73,8 @@ public class ClassLogger implements ClassFileTransformer {
 		// __start;");
 		// method.addLocalVariable("__start", CtClass.longType);
 		// method.addLocalVariable("__stop", CtClass.longType);
-		method.insertBefore("ProfileSession.opStart(\"" + method.getLongName() + "\");");
-		method.insertAfter("ProfileSession.opStop(\"" + method.getLongName() + "\");");
+		String longName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
+		method.insertBefore("ProfileSession.opStart(\"" + longName + "\");");
+		method.insertAfter("ProfileSession.opStop(\"" + longName + "\");");
 	}
 }
