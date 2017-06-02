@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
-Premain-Class: agent.Agent
+Premain-Class: com.apec.Agent
 Can-Redefine-Classes: true
 Can-Retransform-Classes: true
 Can-Set-Native-Method-Prefix: true
-Implementation-Title: agent.ClassLogger
+Implementation-Title: com.apec.ClassTransformer
 Implementation-Version: 1
