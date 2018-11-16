@@ -24,7 +24,7 @@ public class SocketInputStreamSocketReadAdvice {
 			@Advice.Argument(readOnly = false, value = 4) int timeout) {
 		if (timeout < NOT_SET) {
 			timeout = TIMEOUT;
-			new Exception("From " + timeout + " to " + TIMEOUT).printStackTrace();
+			// new Exception("From " + timeout + " to " + TIMEOUT).printStackTrace();
 		}
 	}
 

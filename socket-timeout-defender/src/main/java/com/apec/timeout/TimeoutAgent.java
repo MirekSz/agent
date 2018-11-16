@@ -21,7 +21,7 @@ public class TimeoutAgent {
 
 	public static final String AGENT = "apec.timeout.agent";
 	public static final String AGENT_TIMEOUT = "apec.socket.timeout.val";
-	public static final String TESTING_ENV = "streamsoft.testing.env";
+	public static final String TESTING_ENV = "apec.testing.env";
 	public static String GLOBAL_TIMEOUT = "60000";
 
 	public static void premain(final String arguments, final Instrumentation instrumentation) throws Exception {
@@ -39,16 +39,18 @@ public class TimeoutAgent {
 		if (System.getProperty(AGENT_TIMEOUT) == null) {
 			System.setProperty(AGENT_TIMEOUT, GLOBAL_TIMEOUT);
 		}
+
+		System.setProperty(AGENT, "true");
+		System.setProperty("sun.net.client.defaultConnectTimeout", System.getProperty(AGENT_TIMEOUT));
+		System.setProperty("sun.net.client.defaultReadTimeout", System.getProperty(AGENT_TIMEOUT));
+
 		if (System.getProperty(TESTING_ENV) != null) {
 			System.setProperty("sun.net.client.defaultConnectTimeout", "1");
 			System.setProperty("sun.net.client.defaultReadTimeout", "1");
-			advice = new AgentBuilder.Transformer.ForAdvice().include(TestingSocketInputStreamSocketReadAdvice.class.getClassLoader())
+			System.setProperty(AGENT_TIMEOUT, "1");
+			advice = new AgentBuilder.Transformer.ForAdvice()// .include(SocketInputStreamSocketReadAdvice.class.getClassLoader())
 					.advice(ElementMatchers.named("socketRead"), TestingSocketInputStreamSocketReadAdvice.class.getName());
 		}
-
-		System.setProperty(AGENT, "true");
-		System.setProperty("sun.net.client.defaultConnectTimeout", GLOBAL_TIMEOUT + "");
-		System.setProperty("sun.net.client.defaultReadTimeout", GLOBAL_TIMEOUT + "");
 
 		System.out.println(" ____ ____ ____ ____ ");
 		System.out.println("||A |||P |||E |||C || ");
