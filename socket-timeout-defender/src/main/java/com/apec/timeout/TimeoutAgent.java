@@ -4,11 +4,8 @@ package com.apec.timeout;
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.Transformer.ForAdvice;
@@ -25,9 +22,7 @@ public class TimeoutAgent {
 	public static String GLOBAL_TIMEOUT = "60000";
 
 	public static void premain(final String arguments, final Instrumentation instrumentation) throws Exception {
-		File temp = Files.createTempDirectory("apec-timeout-agent").toFile();
-
-		deleteOldDirs(temp);
+		File temp = createTmpDir();
 
 		ClassInjector.UsingInstrumentation.of(temp, ClassInjector.UsingInstrumentation.Target.BOOTSTRAP, instrumentation)
 				.inject(Collections.singletonMap(new TypeDescription.ForLoadedType(SocketInputStreamSocketReadAdvice.class),
@@ -66,14 +61,26 @@ public class TimeoutAgent {
 	}
 
 	public static void main(final String[] args) throws Exception {
-		File temp = Files.createTempDirectory("apec-timeout-agent").toFile();
-		deleteOldDirs(temp);
+		File temp = new File(new File(System.getProperty("java.io.tmpdir")).getAbsolutePath() + File.separator + "apec-timeout-agent");
+		if (temp.exists()) {
+			File[] listFiles = temp.listFiles();
+			for (File file : listFiles) {
+				file.delete();
+			}
+		}
+		temp.mkdir();
 	}
 
-	private static void deleteOldDirs(final File temp) throws IOException {
-		Stream<Path> list = Files.list(temp.getParentFile().toPath());
-		list.filter(d -> d.toString().contains("apec-timeout-agent")).filter(d -> !d.toFile().equals(temp)).map(Path::toFile)
-				.forEach(File::delete);
+	private static File createTmpDir() throws IOException {
+		File temp = new File(new File(System.getProperty("java.io.tmpdir")).getAbsolutePath() + File.separator + "apec-timeout-agent");
+		if (temp.exists()) {
+			File[] listFiles = temp.listFiles();
+			for (File file : listFiles) {
+				file.delete();
+			}
+		}
+		temp.mkdir();
+		return temp;
 	}
 
 }
