@@ -3,7 +3,7 @@ package com.apec.timeout;
 
 import net.bytebuddy.asm.Advice;
 
-public class SocketInputStreamSocketReadAdvice {
+public class DebuggingSocketInputStreamSocketReadAdvice {
 
 	public static final String AGENT_TIMEOUT = "apec.socket.timeout.val";
 
@@ -24,6 +24,18 @@ public class SocketInputStreamSocketReadAdvice {
 			@Advice.Argument(readOnly = false, value = 4) int timeout) {
 		if (timeout < NOT_SET) {
 			timeout = TIMEOUT;
+			StackTraceElement[] stackTrace = new Exception().getStackTrace();
+			int ii = 0;
+			StringBuilder sb = new StringBuilder(1000);
+			sb.append("INFINITY socket timeout");
+			for (StackTraceElement stackTraceElement : stackTrace) {
+				sb.append(stackTraceElement.toString() + "\n");
+				ii++;
+				if (ii == 20) {
+					break;
+				}
+			}
+			System.err.println(sb);
 		}
 	}
 
