@@ -27,7 +27,7 @@ public class DebuggingSocketInputStreamSocketReadAdvice {
 			StackTraceElement[] stackTrace = new Exception().getStackTrace();
 			int ii = 0;
 			StringBuilder sb = new StringBuilder(1000);
-			sb.append("INFINITY socket timeout");
+			sb.append("INFINITY socket timeout" + "\n");
 			for (StackTraceElement stackTraceElement : stackTrace) {
 				sb.append(stackTraceElement.toString() + "\n");
 				ii++;
