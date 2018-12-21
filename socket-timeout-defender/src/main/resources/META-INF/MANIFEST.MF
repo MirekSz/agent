@@ -1,2 +1,4 @@
 Manifest-Version: 1.0
 Premain-Class: com.apec.timeout.TimeoutAgent
+Agent-Class: com.apec.timeout.BugFixAgent
+Can-Redefine-Classes: true 

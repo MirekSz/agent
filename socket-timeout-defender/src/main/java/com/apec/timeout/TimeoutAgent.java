@@ -22,7 +22,7 @@ public class TimeoutAgent {
 	public static final String AGENT_TIMEOUT = "apec.socket.timeout.val";
 	public static final String AGENT_DEBUG = "apec.socket.timeout.debug";
 	public static final String TESTING_ENV = "apec.testing.env";
-	public static String GLOBAL_TIMEOUT = "60000";
+	public static String GLOBAL_TIMEOUT = "300000";
 
 	public static void premain(final String arguments, final Instrumentation instrumentation) throws Exception {
 		File temp = createTmpDir();
