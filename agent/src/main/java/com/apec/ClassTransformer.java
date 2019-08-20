@@ -1,3 +1,4 @@
+
 package com.apec;
 
 import java.lang.instrument.ClassFileTransformer;
@@ -5,6 +6,8 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javassist.CannotCompileException;
@@ -15,6 +18,7 @@ import javassist.LoaderClassPath;
 import javassist.NotFoundException;
 
 public class ClassTransformer implements ClassFileTransformer {
+
 	private static final List<String> SKIP = new ArrayList();
 	static {
 		SKIP.add("ImportServiceImpl");
@@ -23,7 +27,7 @@ public class ClassTransformer implements ClassFileTransformer {
 	private static boolean INITIALIZED = false;
 	private ClassLoader contextClassLoader;
 
-	private boolean skip(String className) {
+	private boolean skip(final String className) {
 		for (String toSkip : SKIP) {
 			if (className.contains(toSkip)) {
 				return true;
@@ -33,8 +37,8 @@ public class ClassTransformer implements ClassFileTransformer {
 	}
 
 	@Override
-	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
-			ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+	public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined,
+			final ProtectionDomain protectionDomain, final byte[] classfileBuffer) throws IllegalClassFormatException {
 		ClassPool pool = ClassPool.getDefault();
 		if (!INITIALIZED) {
 			contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -63,19 +67,33 @@ public class ClassTransformer implements ClassFileTransformer {
 		if (className.contains("asen") && className.contains("DatabaseAccessServiceImpl")) {
 			return transform(classfileBuffer, "executeQuery", className, true);
 		}
-		if (className.contains("CGLIB") || className.contains("$") || className.contains("javassist")
-				|| className.contains("asen")) {
+		if (className.contains("asen") && className.contains("QueryExecutorServiceImpl")) {
+			return transform(classfileBuffer, Arrays.asList("executeQuery", "executeSQLQuery"), className, false);
+		}
+		if (className.contains("asen") && className.contains("DetachedQueryExecutorImpl")) {
+			return transform(classfileBuffer, Arrays.asList("execute", "executeOnQueryPool"), className, true);
+		}
+		if (className.contains("CGLIB") || className.contains("$") || className.contains("javassist") || className.contains("asen")) {
 			return classfileBuffer;
 		}
 
 		if (className.contains("server") || className.contains("webservice")) {
-			return transform(classfileBuffer, null, className, false);
+			return transform(classfileBuffer, className, false);
 		}
 
 		return classfileBuffer;
 	}
 
-	private byte[] transform(byte[] classfileBuffer, String onlyMethod, String className, boolean onlyFirstParam) {
+	private byte[] transform(final byte[] classfileBuffer, final String onlyMethod, final String className, final boolean onlyFirstParam) {
+		return transform(classfileBuffer, Arrays.asList(onlyMethod), className, onlyFirstParam);
+	}
+
+	private byte[] transform(final byte[] classfileBuffer, final String className, final boolean onlyFirstParam) {
+		return transform(classfileBuffer, Collections.EMPTY_LIST, className, onlyFirstParam);
+	}
+
+	private byte[] transform(final byte[] classfileBuffer, final List<String> onlyMethod, final String className,
+			final boolean onlyFirstParam) {
 		ClassPool pool = ClassPool.getDefault();
 		// System.out.println("TRANSFORM " + className);
 		CtClass cl = null;
@@ -83,14 +101,14 @@ public class ClassTransformer implements ClassFileTransformer {
 		try {
 			cl = pool.makeClass(new java.io.ByteArrayInputStream(classfileBuffer));
 			CtBehavior[] methods = cl.getDeclaredBehaviors();
-			for (int i = 0; i < methods.length; i++) {
-				if (methods[i].isEmpty() == false) {
-					if (onlyMethod != null) {
-						if (onlyMethod.equals(methods[i].getName())) {
-							changeMethod(methods[i], onlyFirstParam);
+			for (CtBehavior method : methods) {
+				if (method.isEmpty() == false) {
+					if (!onlyMethod.isEmpty()) {
+						if (onlyMethod.contains(method.getName())) {
+							changeMethod(method, onlyFirstParam);
 						}
 					} else {
-						changeMethod(methods[i], onlyFirstParam);
+						changeMethod(method, onlyFirstParam);
 					}
 					// System.out.println("TRANSFORM " + methods[i]);
 				}
@@ -110,8 +128,7 @@ public class ClassTransformer implements ClassFileTransformer {
 		return b;
 	}
 
-	private void changeMethod(CtBehavior method, boolean onlyFirstParam)
-			throws NotFoundException, CannotCompileException {
+	private void changeMethod(final CtBehavior method, final boolean onlyFirstParam) throws NotFoundException, CannotCompileException {
 		if (method.getModifiers() == Modifier.PROTECTED) {
 			// return;
 		}
