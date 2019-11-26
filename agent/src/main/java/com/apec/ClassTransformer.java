@@ -129,6 +129,7 @@ public class ClassTransformer implements ClassFileTransformer {
 	}
 
 	private void changeMethod(final CtBehavior method, final boolean onlyFirstParam) throws NotFoundException, CannotCompileException {
+
 		if (method.getModifiers() == Modifier.PROTECTED) {
 			// return;
 		}
@@ -140,12 +141,19 @@ public class ClassTransformer implements ClassFileTransformer {
 		// method.addLocalVariable("__start", CtClass.longType);
 		// method.addLocalVariable("__stop", CtClass.longType);
 		String longName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
-		if (onlyFirstParam) {
-			method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $1);");
-		} else {
-			method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $args);");
-
+		if (longName.contains("$")) {
+			return;
 		}
-		method.insertAfter("ProfileSession.opStop(\"" + longName + "\");", true);
+		try {
+			if (onlyFirstParam) {
+				method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $1);");
+			} else {
+				method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $args);");
+
+			}
+			method.insertAfter("ProfileSession.opStop(\"" + longName + "\");", true);
+		} catch (CannotCompileException e) {
+			throw new CannotCompileException(longName, e);
+		}
 	}
 }
