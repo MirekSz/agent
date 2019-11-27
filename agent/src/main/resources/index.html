@@ -11906,7 +11906,7 @@ Video background
         var percent = (node.time / model.time) * 100;
         var split = node.text.split('.');
         node.orgText = split[split.length - 2] + '.' + split[split.length - 1];
-        node.text = split[split.length - 2] + '.' + split[split.length - 1] + '&nbsp;&nbsp;&nbsp;<a title="Copy to clipboard" onClick="copy(\'' + node.text + '\')" href="#"><span  class="glyphicon glyphicon-copy" aria-hidden="true"></span></a> ' + '&nbsp;&nbsp;&nbsp;<a title="Copy to clipboard" onClick="showParams(' + node.nodeId + ')" href="#"><span  class="glyphicon glyphicon-gift" aria-hidden="true"></span></a> ';
+        node.text = split[split.length - 2] + '.' + split[split.length - 1] + '&nbsp;&nbsp;&nbsp;<a title="Copy to clipboard" onClick="copy(\'' + node.text + '\');stop" href="#"><span  class="glyphicon glyphicon-copy" aria-hidden="true"></span></a> ' + '&nbsp;&nbsp;&nbsp;<a title="Show params" onClick="showParams(' + node.nodeId + ');stop" href="#"><span  class="glyphicon glyphicon-gift" aria-hidden="true"></span></a> ';
         var addClass = percent > 30 ? percent > 50 ? 'progress-bar-danger' : 'progress-bar-warning' : '';
         node.text = node.text + ' <div class="progress pull-right" style="width:200px"><div class="progress-bar ' + addClass + '" role="progressbar"  style="width:' + percent + '%"><span>' + node.time + '</span></div></div>'
         if (node.nodes.length == 0 && node.time > 0) {
@@ -11955,6 +11955,9 @@ Video background
             stackup_spacing: 10
         });
         $(".bootstrap-growl").css({position: 'fixed', border: '1px solid lightgray'})
+    }
+    function stop(event){
+    	event.preventDefault();
     }
 
     function copyTextToClipboard(text) {
