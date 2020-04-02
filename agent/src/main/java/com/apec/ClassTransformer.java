@@ -39,6 +39,9 @@ public class ClassTransformer implements ClassFileTransformer {
 	@Override
 	public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined,
 			final ProtectionDomain protectionDomain, final byte[] classfileBuffer) throws IllegalClassFormatException {
+		if (loader.toString().contains("next-url-module-loader")) {
+			return classfileBuffer;
+		}
 		ClassPool pool = ClassPool.getDefault();
 		if (!INITIALIZED) {
 			contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -53,6 +56,9 @@ public class ClassTransformer implements ClassFileTransformer {
 			pool.appendClassPath(loaderClassPath);
 		}
 		if (!className.startsWith("pl")) {
+			return classfileBuffer;
+		}
+		if (className.contains("/client/")) {
 			return classfileBuffer;
 		}
 		if (skip(className)) {
