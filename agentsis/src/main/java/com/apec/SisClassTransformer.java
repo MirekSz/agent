@@ -11,6 +11,7 @@ import javassist.CtClass;
 import javassist.CtField;
 import javassist.CtMethod;
 import javassist.CtNewConstructor;
+import javassist.CtNewMethod;
 
 public class SisClassTransformer implements ClassFileTransformer {
 
@@ -53,6 +54,27 @@ public class SisClassTransformer implements ClassFileTransformer {
 			}
 			return b;
 
+		} else if (className.contains("Child")) {
+
+			ClassPool pool = ClassPool.getDefault();
+			System.out.println("TRANSFORM " + className);
+			CtClass cl = null;
+			byte[] b = null;
+			try {
+				CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(classfileBuffer));
+				ctClass.setSuperclass(pool.get("pl.com.Base"));
+				ctClass.addInterface(pool.get(Runnable.class.getName()));
+				ctClass.addMethod(CtNewMethod.make("public void hello2() {System.out.println(\"runtime\");}", ctClass));
+				b = ctClass.toBytecode();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (cl != null) {
+					cl.detach();
+				}
+			}
+			return b;
 		}
 		return classfileBuffer;
 	}

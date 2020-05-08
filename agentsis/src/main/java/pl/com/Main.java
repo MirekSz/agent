@@ -7,5 +7,8 @@ public class Main {
 		Customer customer = new Customer();
 		customer.setName("MIrek");
 		System.out.println(customer.getName());
+
+		Runnable child = (Runnable) new Child();
+		child.run();
 	}
 }
