@@ -1,6 +1,7 @@
 
 package com.apec;
 
+import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.Modifier;
@@ -9,6 +10,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.util.TraceClassVisitor;
 
 import javassist.CannotCompileException;
 import javassist.ClassPool;
@@ -87,7 +92,14 @@ public class ClassTransformer implements ClassFileTransformer {
 			return transform(classfileBuffer, className, false);
 		}
 
-		return classfileBuffer;
+		ClassReader cr = new ClassReader(classfileBuffer);
+		ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+		org.objectweb.asm.ClassVisitor profiler = new ProfileClassAdapter(cw, className);
+		TraceClassVisitor cv = new TraceClassVisitor(cw, new PrintWriter(System.out));
+		// ClassVisitor cv = new LogMethodClassVisitor(cw, className);
+		// cr.accept(cv, 0);
+		cr.accept(profiler, 0);
+		return cw.toByteArray();
 	}
 
 	private byte[] transform(final byte[] classfileBuffer, final String onlyMethod, final String className, final boolean onlyFirstParam) {
@@ -152,12 +164,14 @@ public class ClassTransformer implements ClassFileTransformer {
 		}
 		try {
 			if (onlyFirstParam) {
-				method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $1);");
+				method.insertBefore("System.out.println(\"" + longName + "\");");
+				// method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $1);");
 			} else {
-				method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $args);");
+				method.insertBefore("System.out.println(\"" + longName + "\");");
+				// method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $args);");
 
 			}
-			method.insertAfter("ProfileSession.opStop(\"" + longName + "\");", true);
+			// method.insertAfter("ProfileSession.opStop(\"" + longName + "\");", true);
 		} catch (CannotCompileException e) {
 			throw new CannotCompileException(longName, e);
 		}
