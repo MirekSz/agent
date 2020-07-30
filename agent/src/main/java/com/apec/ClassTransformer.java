@@ -1,7 +1,6 @@
 
 package com.apec;
 
-import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.Modifier;
@@ -10,15 +9,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.util.TraceClassVisitor;
+import java.util.stream.Collectors;
 
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtBehavior;
 import javassist.CtClass;
+import javassist.CtField;
 import javassist.LoaderClassPath;
 import javassist.NotFoundException;
 
@@ -31,6 +28,23 @@ public class ClassTransformer implements ClassFileTransformer {
 
 	private static boolean INITIALIZED = false;
 	private ClassLoader contextClassLoader;
+	private boolean performance;
+	private boolean tracking;
+
+	public ClassTransformer(final String args) {
+		if (args == null) {
+			this.performance = true;
+			this.tracking = true;
+		} else if ("p".equals(args)) {
+			this.performance = true;
+		} else if ("e".equals(args)) {
+			this.tracking = true;
+		} else if ("ep".equals(args) || "pe".equals(args)) {
+			this.performance = true;
+			this.tracking = true;
+		}
+
+	}
 
 	private boolean skip(final String className) {
 		for (String toSkip : SKIP) {
@@ -81,6 +95,9 @@ public class ClassTransformer implements ClassFileTransformer {
 		if (className.contains("asen") && className.contains("QueryExecutorServiceImpl")) {
 			return transform(classfileBuffer, Arrays.asList("executeQuery", "executeSQLQuery"), className, false);
 		}
+		if (className.contains("domain/entity")) {
+			return transformEntity(classfileBuffer, className);
+		}
 		if (className.contains("asen") && className.contains("DetachedQueryExecutorImpl")) {
 			return transform(classfileBuffer, Arrays.asList("execute", "executeOnQueryPool"), className, true);
 		}
@@ -92,14 +109,57 @@ public class ClassTransformer implements ClassFileTransformer {
 			return transform(classfileBuffer, className, false);
 		}
 
-		ClassReader cr = new ClassReader(classfileBuffer);
-		ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
-		org.objectweb.asm.ClassVisitor profiler = new ProfileClassAdapter(cw, className);
-		TraceClassVisitor cv = new TraceClassVisitor(cw, new PrintWriter(System.out));
-		// ClassVisitor cv = new LogMethodClassVisitor(cw, className);
-		// cr.accept(cv, 0);
-		cr.accept(profiler, 0);
-		return cw.toByteArray();
+		return classfileBuffer;
+	}
+
+	private byte[] transformEntity(final byte[] classfileBuffer, final String className) {
+		if (!this.tracking) {
+			return classfileBuffer;
+		}
+		ClassPool pool = ClassPool.getDefault();
+		// System.out.println("TRANSFORM " + className);
+		CtClass cl = null;
+		byte[] b = null;
+		try {
+			cl = pool.makeClass(new java.io.ByteArrayInputStream(classfileBuffer));
+			if ("AbstractEntity".equals(cl.getSuperclass().getSimpleName())) {
+				CtBehavior[] methods = cl.getDeclaredBehaviors();
+				List<String> fieldsNames =
+						Arrays.asList(cl.getDeclaredFields()).stream().map(CtField::getName).collect(Collectors.toList());
+				for (CtBehavior method : methods) {
+					if (method.getModifiers() != Modifier.PUBLIC) {
+						continue;
+					}
+					if (method.getName().equals("setId" + cl.getSimpleName())) {
+						continue;
+					}
+					if (method.getName().startsWith("set")) {
+						String fieldName = method.getName().replaceFirst("set", "");
+						fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
+						if (!fieldsNames.contains(fieldName)) {
+							continue;
+						}
+						String longName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
+						if (longName.contains("$")) {
+							continue;
+						}
+						try {
+							method.insertBefore("firePropertyChange(\"" + fieldName + "\", this." + fieldName + ", $1);");
+						} catch (CannotCompileException e) {
+							throw new CannotCompileException(longName, e);
+						}
+					}
+				}
+			}
+			b = cl.toBytecode();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (cl != null) {
+				cl.detach();
+			}
+		}
+		return b;
 	}
 
 	private byte[] transform(final byte[] classfileBuffer, final String onlyMethod, final String className, final boolean onlyFirstParam) {
@@ -112,6 +172,9 @@ public class ClassTransformer implements ClassFileTransformer {
 
 	private byte[] transform(final byte[] classfileBuffer, final List<String> onlyMethod, final String className,
 			final boolean onlyFirstParam) {
+		if (!this.performance) {
+			return classfileBuffer;
+		}
 		ClassPool pool = ClassPool.getDefault();
 		// System.out.println("TRANSFORM " + className);
 		CtClass cl = null;
@@ -164,14 +227,12 @@ public class ClassTransformer implements ClassFileTransformer {
 		}
 		try {
 			if (onlyFirstParam) {
-				method.insertBefore("System.out.println(\"" + longName + "\");");
-				// method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $1);");
+				method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $1);");
 			} else {
-				method.insertBefore("System.out.println(\"" + longName + "\");");
-				// method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $args);");
+				method.insertBefore("ProfileSession.opStart(\"" + longName + "\", $args);");
 
 			}
-			// method.insertAfter("ProfileSession.opStop(\"" + longName + "\");", true);
+			method.insertAfter("ProfileSession.opStop(\"" + longName + "\");", true);
 		} catch (CannotCompileException e) {
 			throw new CannotCompileException(longName, e);
 		}
