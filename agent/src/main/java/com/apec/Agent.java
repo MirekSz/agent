@@ -9,8 +9,11 @@ import java.util.Properties;
 public class Agent {
 
 	public static void premain(final String args, final Instrumentation instrumentation) {
-		System.out.println(" _________ ____ ____ ____ ____ ");
-		System.out.println("||       |||A |||P |||E |||C || " + getVer() + " features(e=EMIS, p=PERFORMANCE): " + args);
+		if (args == null) {
+			System.out.println(" _________ ____ ____ ____ ____ ");
+		}
+		System.out.println(
+				"||       |||A |||P |||E |||C || " + getVer() + " features(e=EMIS, p=PERFORMANCE): " + (args == null ? "ep" : args));
 		System.out.println("||_______|||__|||__|||__|||__||");
 		System.out.println("|/_______\\|/__\\|/__\\|/__\\|/__\\|");
 		System.out.println(" ____ ____ ____ ____ ____ _________ ____ ____ ____ ____ ____ ____ ____ ");
